@@ -9,10 +9,10 @@ tf.app.flags.DEFINE_integer('num_readers', 16, '')
 tf.app.flags.DEFINE_float('learning_rate', 0.0001, '')
 tf.app.flags.DEFINE_integer('max_steps', 100000, '')
 tf.app.flags.DEFINE_float('moving_average_decay', 0.997, '')
-tf.app.flags.DEFINE_string('gpu_list', '1', '')
+tf.app.flags.DEFINE_string('gpu_list', '0', '')
 tf.app.flags.DEFINE_string('checkpoint_path', '/tmp/east_resnet_v1_50_rbox/', '')
-tf.app.flags.DEFINE_boolean('restore', False, 'whether to resotre from checkpoint')
-tf.app.flags.DEFINE_integer('save_checkpoint_steps', 1000, '')
+tf.app.flags.DEFINE_boolean('restore', True, 'whether to restore from checkpoint')   # restore 若為 false,則可能把 checkpoint path 給清洗掉
+tf.app.flags.DEFINE_integer('save_checkpoint_steps', 50, '')
 tf.app.flags.DEFINE_integer('save_summary_steps', 100, '')
 tf.app.flags.DEFINE_string('pretrained_model_path', None, '')
 
@@ -150,7 +150,9 @@ def main(argv=None):
 
         start = time.time()
         for step in range(FLAGS.max_steps):
+            print("yielding data......")
             data = next(data_generator)
+            print("training......")
             ml, tl, _ = sess.run([model_loss, total_loss, train_op], feed_dict={input_images: data[0],
                                                                                 input_score_maps: data[2],
                                                                                 input_geo_maps: data[3],
@@ -160,7 +162,7 @@ def main(argv=None):
                 break
 
             if step % 10 == 0:
-                avg_time_per_step = (time.time() - start)/10
+                avg_time_per_step = (time.time() - start)/104
                 avg_examples_per_second = (10 * FLAGS.batch_size_per_gpu * len(gpus))/(time.time() - start)
                 start = time.time()
                 print('Step {:06d}, model loss {:.4f}, total loss {:.4f}, {:.2f} seconds/step, {:.2f} examples/second'.format(

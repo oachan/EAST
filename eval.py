@@ -8,10 +8,10 @@ import tensorflow as tf
 import locality_aware_nms as nms_locality
 import lanms
 
-tf.app.flags.DEFINE_string('test_data_path', '/tmp/ch4_test_images/images/', '')
-tf.app.flags.DEFINE_string('gpu_list', '0', '')
-tf.app.flags.DEFINE_string('checkpoint_path', '/tmp/east_icdar2015_resnet_v1_50_rbox/', '')
-tf.app.flags.DEFINE_string('output_dir', '/tmp/ch4_test_images/images/', '')
+tf.app.flags.DEFINE_string('test_data_path', './data/SciTSR/test/img/', '')
+tf.app.flags.DEFINE_string('gpu_list', '0,1', '')
+tf.app.flags.DEFINE_string('checkpoint_path', './tmp/east_icdar2015_resnet_v1_50_rbox/', '')
+tf.app.flags.DEFINE_string('output_dir', './results/SciTSR/finetuned/', '')
 tf.app.flags.DEFINE_bool('no_write_images', False, 'do not write images')
 
 import model
@@ -25,7 +25,7 @@ def get_images():
     :return: list of files found
     '''
     files = []
-    exts = ['jpg', 'png', 'jpeg', 'JPG']
+    exts = ['jpg', 'png', 'jpeg', 'JPG', 'tif']
     for parent, dirnames, filenames in os.walk(FLAGS.test_data_path):
         for filename in filenames:
             for ext in exts:
@@ -175,8 +175,8 @@ def main(argv=None):
                 if boxes is not None:
                     res_file = os.path.join(
                         FLAGS.output_dir,
-                        '{}.txt'.format(
-                            os.path.basename(im_fn).split('.')[0]))
+                        'box/{}.csv'.format(
+                            os.path.basename(im_fn)[:-4]))
 
                     with open(res_file, 'w') as f:
                         for box in boxes:
@@ -184,12 +184,12 @@ def main(argv=None):
                             box = sort_poly(box.astype(np.int32))
                             if np.linalg.norm(box[0] - box[1]) < 5 or np.linalg.norm(box[3]-box[0]) < 5:
                                 continue
-                            f.write('{},{},{},{},{},{},{},{}\r\n'.format(
+                            f.write('{},{},{},{},{},{},{},{},transcript\r\n'.format(
                                 box[0, 0], box[0, 1], box[1, 0], box[1, 1], box[2, 0], box[2, 1], box[3, 0], box[3, 1],
                             ))
                             cv2.polylines(im[:, :, ::-1], [box.astype(np.int32).reshape((-1, 1, 2))], True, color=(255, 255, 0), thickness=1)
                 if not FLAGS.no_write_images:
-                    img_path = os.path.join(FLAGS.output_dir, os.path.basename(im_fn))
+                    img_path = os.path.join(FLAGS.output_dir + '/img/', os.path.basename(im_fn))
                     cv2.imwrite(img_path, im[:, :, ::-1])
 
 if __name__ == '__main__':

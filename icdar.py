@@ -14,15 +14,20 @@ import tensorflow as tf
 
 from data_util import GeneratorEnqueuer
 
-tf.app.flags.DEFINE_string('training_data_path', '/data/ocr/icdar2015/',
+tf.app.flags.DEFINE_string('training_data_path', '/data/train/',
                            'training dataset to use')
-tf.app.flags.DEFINE_integer('max_image_large_side', 1280,
+tf.app.flags.DEFINE_integer('max_image_large_side', 3200,
                             'max image size of training')
 tf.app.flags.DEFINE_integer('max_text_size', 800,
                             'if the text in the input image is bigger than this, then we resize'
                             'the image according to this')
-tf.app.flags.DEFINE_integer('min_text_size', 10,
+
+#####################################################
+# 改變這個參數可以抓取到比較小的文字特徵 
+tf.app.flags.DEFINE_integer('min_text_size', 2,
                             'if the text size is smaller than this, we ignore it during training')
+#####################################################
+
 tf.app.flags.DEFINE_float('min_crop_side_ratio', 0.1,
                           'when doing random crop from input image, the'
                           'min length of min(H, W')
@@ -32,7 +37,7 @@ tf.app.flags.DEFINE_string('geometry', 'RBOX',
 
 FLAGS = tf.app.flags.FLAGS
 
-
+# 利用regular expression去抓取training_data_path裡面所有圖片相關的路徑
 def get_images():
     files = []
     for ext in ['jpg', 'png', 'jpeg', 'JPG']:
@@ -40,8 +45,9 @@ def get_images():
             os.path.join(FLAGS.training_data_path, '*.{}'.format(ext))))
     return files
 
-
-def load_annoataion(p):
+# 讀取bounding box座標資料
+# p: 為該 csv 資料的路徑
+def load_annotation(p):
     '''
     load annotation from the text file
     :param p:
@@ -102,10 +108,10 @@ def check_and_validate_polys(polys, tags, xxx_todo_changeme):
         p_area = polygon_area(poly)
         if abs(p_area) < 1:
             # print poly
-            print('invalid poly')
+            # print('invalid poly')
             continue
         if p_area > 0:
-            print('poly in wrong direction')
+            # print('poly in wrong direction')
             poly = poly[(0, 3, 2, 1), :]
         validated_polys.append(poly)
         validated_tags.append(tag)
@@ -598,15 +604,19 @@ def generator(input_size=512, batch_size=32,
         for i in index:
             try:
                 im_fn = image_list[i]
+                # print(im_fn)
                 im = cv2.imread(im_fn)
-                # print im_fn
+
                 h, w, _ = im.shape
-                txt_fn = im_fn.replace(os.path.basename(im_fn).split('.')[1], 'txt')
+
+                # txt_fn = im_fn.replace(os.path.basename(im_fn).split('.')[1], 'csv')
+                txt_fn = im_fn[:-4] + '.csv'
+
                 if not os.path.exists(txt_fn):
                     print('text file {} does not exists'.format(txt_fn))
                     continue
 
-                text_polys, text_tags = load_annoataion(txt_fn)
+                text_polys, text_tags = load_annotation(txt_fn)
 
                 text_polys, text_tags = check_and_validate_polys(text_polys, text_tags, (h, w))
                 # if text_polys.shape[0] == 0:
